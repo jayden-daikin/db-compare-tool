@@ -85,12 +85,18 @@ class ComparisonState extends ChangeNotifier {
 
   void selectLeftTable(String tableName) {
     leftSchema = _leftDb!.getTableSchema(tableName);
+    if (_rightDb != null && rightTables.contains(tableName)) {
+      rightSchema = _rightDb!.getTableSchema(tableName);
+    }
     _resetDownstream();
     notifyListeners();
   }
 
   void selectRightTable(String tableName) {
     rightSchema = _rightDb!.getTableSchema(tableName);
+    if (_leftDb != null && leftTables.contains(tableName)) {
+      leftSchema = _leftDb!.getTableSchema(tableName);
+    }
     _resetDownstream();
     notifyListeners();
   }
@@ -107,7 +113,7 @@ class ComparisonState extends ChangeNotifier {
       final rightMatch = rightNames.contains(col.name) ? col.name : null;
       final isMapped = rightMatch != null;
       final lowerName = col.name.toLowerCase();
-      final isKeyCol = isMapped && lowerName == 'date';
+      final isKeyCol = isMapped && (lowerName == 'id' || lowerName == 'date');
       return ColumnMapping(
         leftColumn: col.name,
         rightColumn: rightMatch,

@@ -220,16 +220,21 @@ class _DiffTableState extends State<DiffTable> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: ListView.builder(
-                      controller: _vScrollController,
-                      itemCount: widget.rows.length,
-                      itemExtent: _kRowHeight,
-                      itemBuilder: (ctx, i) => _buildDataRow(
-                        ctx,
-                        widget.rows[i],
-                        colWidths,
-                        sideW,
-                        halfAvail,
+                    child: ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(
+                        context,
+                      ).copyWith(scrollbars: false),
+                      child: ListView.builder(
+                        controller: _vScrollController,
+                        itemCount: widget.rows.length,
+                        itemExtent: _kRowHeight,
+                        itemBuilder: (ctx, i) => _buildDataRow(
+                          ctx,
+                          widget.rows[i],
+                          colWidths,
+                          sideW,
+                          halfAvail,
+                        ),
                       ),
                     ),
                   ),
@@ -613,7 +618,10 @@ class _DiffTableState extends State<DiffTable> {
   Widget _headerCell(String text, double width, TextStyle? style, {Color? bg}) {
     return Container(
       width: width,
-      color: bg,
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border(right: BorderSide(color: Colors.grey.shade300)),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       alignment: Alignment.centerLeft,
       child: Text(text, style: style, overflow: TextOverflow.ellipsis),
@@ -623,6 +631,9 @@ class _DiffTableState extends State<DiffTable> {
   Widget _bodyCell(double width, Widget child) {
     return Container(
       width: width,
+      decoration: BoxDecoration(
+        border: Border(right: BorderSide(color: Colors.grey.shade300)),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       alignment: Alignment.centerLeft,
       child: child,

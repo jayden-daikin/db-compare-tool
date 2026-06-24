@@ -85,7 +85,7 @@ class SidePickerCard extends StatelessWidget {
               MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: DropdownButtonFormField<String>(
-                  initialValue: selectedTable,
+                  value: selectedTable,
                   isExpanded: true,
                   decoration: framedDropdownDecoration('Table'),
                   hint: const Text('Select a table'),

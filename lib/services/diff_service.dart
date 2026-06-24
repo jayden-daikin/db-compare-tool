@@ -35,6 +35,13 @@ class DiffService {
         .where((list) => list.length > 1)
         .fold<int>(0, (sum, list) => sum + (list.length - 1));
 
+    // Count how many left rows exist per key so we know when we've seen the last one.
+    final leftKeyRemaining = <String, int>{};
+    for (final row in leftRows) {
+      final key = _buildKey(row, leftKeyCols);
+      leftKeyRemaining[key] = (leftKeyRemaining[key] ?? 0) + 1;
+    }
+
     final result = <RowDiff>[];
     int matched = 0;
     int different = 0;
@@ -87,9 +94,38 @@ class DiffService {
           cells: cells,
         ));
       }
+
+      // After the last left row for this key, flush any extra right rows for
+      // the same key immediately so duplicates appear adjacent, not at the end.
+      leftKeyRemaining[key] = leftKeyRemaining[key]! - 1;
+      if (leftKeyRemaining[key] == 0) {
+        final extra = rightIndex[key];
+        if (extra != null && extra.isNotEmpty) {
+          for (final rightRow in extra) {
+            final extraKeyValues = <String, Object?>{
+              for (final m in keyMappings)
+                m.leftColumn: rightRow[m.rightColumn!],
+            };
+            final cells = <String, CellDiff>{
+              for (final m in compareMappings)
+                m.leftColumn: CellDiff(
+                  leftValue: null,
+                  rightValue: rightRow[m.rightColumn!],
+                  isDifferent: false,
+                ),
+            };
+            result.add(RowDiff(
+              keyValues: extraKeyValues,
+              status: RowStatus.missingInLeft,
+              cells: cells,
+            ));
+          }
+          rightIndex.remove(key);
+        }
+      }
     }
 
-    // Any rows remaining in rightIndex had no matching left row.
+    // Any right-only keys that had no matching left row at all.
     for (final candidates in rightIndex.values) {
       for (final rightRow in candidates) {
         final keyValues = <String, Object?>{

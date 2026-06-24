@@ -20,7 +20,7 @@ const List<int> _kRowsPerPageOptions = [
   5000,
   10000,
 ];
-const int _kDefaultRowsPerPage = 100;
+const int _kDefaultRowsPerPage = 500;
 
 class DiffResultScreen extends StatefulWidget {
   final bool runOnOpen;
