@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
 import '../models/comparison_config.dart';
 import '../models/diff_result.dart';
@@ -25,13 +27,55 @@ class ComparisonState extends ChangeNotifier {
   bool isRightLoading = false;
   String? errorMessage;
 
+  String? leftFolderPath;
+  String? rightFolderPath;
+  List<String> leftDbFiles = const [];
+  List<String> rightDbFiles = const [];
+
   String? get leftFilePath => _leftDb?.filePath;
   String? get rightFilePath => _rightDb?.filePath;
 
   List<String> get leftTables => _leftDb?.listTables() ?? const [];
   List<String> get rightTables => _rightDb?.listTables() ?? const [];
 
-  Future<void> openLeftDatabase(String filePath) async {
+  void openLeftFolder(String folderPath) {
+    leftFolderPath = folderPath;
+    leftDbFiles = _scanDbFiles(folderPath);
+    _leftDb?.close();
+    _leftDb = null;
+    leftSchema = null;
+    _resetDownstream();
+    notifyListeners();
+  }
+
+  void openRightFolder(String folderPath) {
+    rightFolderPath = folderPath;
+    rightDbFiles = _scanDbFiles(folderPath);
+    _rightDb?.close();
+    _rightDb = null;
+    rightSchema = null;
+    _resetDownstream();
+    notifyListeners();
+  }
+
+  static List<String> _scanDbFiles(String folderPath) {
+    const extensions = {'.db', '.sqlite', '.sqlite3', '.db3'};
+    try {
+      final files = Directory(folderPath)
+          .listSync()
+          .whereType<File>()
+          .where((f) => extensions.contains(p.extension(f.path).toLowerCase()))
+          .map((f) => f.path)
+          .toList()
+        ..sort();
+      return files;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> openLeftDatabase(String filePath,
+      {bool skipAutoSelect = false}) async {
     isLeftLoading = true;
     errorMessage = null;
     notifyListeners();
@@ -55,9 +99,21 @@ class ComparisonState extends ChangeNotifier {
       isLeftLoading = false;
       notifyListeners();
     }
+
+    if (!skipAutoSelect && _leftDb != null && rightFolderPath != null) {
+      final fileName = p.basename(filePath);
+      final match = rightDbFiles.firstWhere(
+        (f) => p.basename(f) == fileName,
+        orElse: () => '',
+      );
+      if (match.isNotEmpty && match != rightFilePath) {
+        await openRightDatabase(match, skipAutoSelect: true);
+      }
+    }
   }
 
-  Future<void> openRightDatabase(String filePath) async {
+  Future<void> openRightDatabase(String filePath,
+      {bool skipAutoSelect = false}) async {
     isRightLoading = true;
     errorMessage = null;
     notifyListeners();
@@ -80,6 +136,17 @@ class ComparisonState extends ChangeNotifier {
     } finally {
       isRightLoading = false;
       notifyListeners();
+    }
+
+    if (!skipAutoSelect && _rightDb != null && leftFolderPath != null) {
+      final fileName = p.basename(filePath);
+      final match = leftDbFiles.firstWhere(
+        (f) => p.basename(f) == fileName,
+        orElse: () => '',
+      );
+      if (match.isNotEmpty && match != leftFilePath) {
+        await openLeftDatabase(match, skipAutoSelect: true);
+      }
     }
   }
 
@@ -113,7 +180,7 @@ class ComparisonState extends ChangeNotifier {
       final rightMatch = rightNames.contains(col.name) ? col.name : null;
       final isMapped = rightMatch != null;
       final lowerName = col.name.toLowerCase();
-      final isKeyCol = isMapped && (lowerName == 'id' || lowerName == 'date');
+      final isKeyCol = isMapped && lowerName == 'date';
       return ColumnMapping(
         leftColumn: col.name,
         rightColumn: rightMatch,

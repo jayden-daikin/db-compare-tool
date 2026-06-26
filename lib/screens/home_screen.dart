@@ -9,17 +9,13 @@ import 'column_mapping_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  Future<void> _pickFile(
+  Future<void> _pickFolder(
     BuildContext context,
-    Future<void> Function(String path) onPicked,
+    void Function(String path) onPicked,
   ) async {
-    const typeGroup = XTypeGroup(
-      label: 'SQLite databases',
-      extensions: ['db', 'sqlite', 'sqlite3', 'db3'],
-    );
-    final file = await openFile(acceptedTypeGroups: [typeGroup]);
-    if (file != null && context.mounted) {
-      await onPicked(file.path);
+    final path = await getDirectoryPath();
+    if (path != null && context.mounted) {
+      onPicked(path);
     }
   }
 
@@ -35,7 +31,7 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Select a SQLite database and table for each side to compare.',
+              'Select the DB folder for each side, then pick a database to compare.',
             ),
             const SizedBox(height: 8),
             Expanded(
@@ -45,30 +41,38 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: SidePickerCard(
                       title: 'Source',
-                      filePath: state.leftFilePath,
+                      folderPath: state.leftFolderPath,
+                      dbFiles: state.leftDbFiles,
+                      selectedFilePath: state.leftFilePath,
                       tables: state.leftTables,
                       selectedTable: state.leftSchema?.tableName,
                       schema: state.leftSchema,
                       isLoading: state.isLeftLoading,
-                      onPickFile: () => _pickFile(
+                      onPickFolder: () => _pickFolder(
                         context,
-                        (path) => state.openLeftDatabase(path),
+                        state.openLeftFolder,
                       ),
+                      onDbFileSelected: (path) =>
+                          state.openLeftDatabase(path),
                       onTableSelected: state.selectLeftTable,
                     ),
                   ),
                   Expanded(
                     child: SidePickerCard(
                       title: 'Target',
-                      filePath: state.rightFilePath,
+                      folderPath: state.rightFolderPath,
+                      dbFiles: state.rightDbFiles,
+                      selectedFilePath: state.rightFilePath,
                       tables: state.rightTables,
                       selectedTable: state.rightSchema?.tableName,
                       schema: state.rightSchema,
                       isLoading: state.isRightLoading,
-                      onPickFile: () => _pickFile(
+                      onPickFolder: () => _pickFolder(
                         context,
-                        (path) => state.openRightDatabase(path),
+                        state.openRightFolder,
                       ),
+                      onDbFileSelected: (path) =>
+                          state.openRightDatabase(path),
                       onTableSelected: state.selectRightTable,
                     ),
                   ),

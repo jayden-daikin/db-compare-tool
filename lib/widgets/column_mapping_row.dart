@@ -46,7 +46,10 @@ class ColumnMappingRow extends StatelessWidget {
               cursor: SystemMouseCursors.click,
               child: DropdownButtonFormField<String>(
                 isExpanded: true,
-                initialValue: mapping.rightColumn ?? _noneValue,
+                initialValue: (mapping.rightColumn != null &&
+                        rightColumnOptions.contains(mapping.rightColumn))
+                    ? mapping.rightColumn
+                    : _noneValue,
                 decoration: framedDropdownDecoration('Target column'),
                 items: [
                   const DropdownMenuItem(

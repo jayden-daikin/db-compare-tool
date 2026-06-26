@@ -11,9 +11,18 @@ class ColumnMappingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<ComparisonState>();
-    final config = state.config!;
-    final leftSchema = state.leftSchema!;
-    final rightColumns = state.rightSchema!.columnNames;
+    final config = state.config;
+    final leftSchema = state.leftSchema;
+    final rightSchema = state.rightSchema;
+
+    if (config == null || leftSchema == null || rightSchema == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.maybeOf(context)?.popUntil((r) => r.isFirst);
+      });
+      return const Scaffold(body: SizedBox.shrink());
+    }
+
+    final rightColumns = rightSchema.columnNames;
 
     final hasKey = config.keyMappings.isNotEmpty;
     final hasCompare = config.compareMappings.isNotEmpty;
@@ -74,7 +83,8 @@ class ColumnMappingScreen extends StatelessWidget {
             const Divider(),
             Expanded(
               child: ListView.separated(
-                itemCount: config.mappings.length,
+                itemCount: config.mappings.length
+                    .clamp(0, leftSchema.columns.length),
                 separatorBuilder: (_, _) => const Divider(height: 8),
                 itemBuilder: (context, index) {
                   final mapping = config.mappings[index];
